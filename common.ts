@@ -13,7 +13,7 @@ export type Provider = (typeof PROVIDERS)[number];
 
 type ProviderProps = {
   openai: { organization: string };
-  "openai-chat": { organization: string };
+  "openai-chat": { organization: string, url?: string };
   "openai-compat": { url: string };
   azure: { url: string };
   "azure-chat": { url: string };
@@ -27,6 +27,7 @@ type SharedPresetSettings = {
   model: string;
   contextLength: number;
   apiKey: string;
+  url?: string;
 };
 
 export type ModelPreset<P extends Provider> = SharedPresetSettings &
@@ -58,6 +59,7 @@ export interface LoomSettings {
   showSearchBar: boolean;
   showNodeBorders: boolean;
   showExport: boolean;
+  openaiUrl?: string;
 }
 
 export const getPreset = (settings: LoomSettings) =>

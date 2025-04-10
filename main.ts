@@ -129,8 +129,10 @@ export default class LoomPlugin extends Plugin {
     if (preset === undefined) return;
 
     if (["openai", "openai-chat"].includes(preset.provider)) {
+      const url = preset.url;
       this.openai = new OpenAIApi(
         new Configuration({
+          basePath: url,
           apiKey: preset.apiKey,
           // @ts-expect-error TODO
           organization: preset.organization,
@@ -138,7 +140,6 @@ export default class LoomPlugin extends Plugin {
       );
     } else if (preset.provider == "cohere") cohere.init(preset.apiKey);
     else if (preset.provider == "azure") {
-      // @ts-expect-error TODO
       const url = preset.url;
 
       if (!preset.apiKey || !url) return;
@@ -1518,8 +1519,7 @@ export default class LoomPlugin extends Plugin {
   async completeOpenAICompat(prompt: string) {
     prompt = this.trimOpenAIPrompt(prompt);
 
-    // @ts-expect-error TODO
-    let url = getPreset(this.settings).url;
+    let url = getPreset(this.settings).url || "";
 
     if (!(url.startsWith("http://") || url.startsWith("https://")))
       url = "https://" + url;
@@ -1527,7 +1527,7 @@ export default class LoomPlugin extends Plugin {
     url = url.replace(/v1\//, "");
     url += "v1/completions";
     
-    let body: any = {
+    const body: any = {
       prompt,
       model: getPreset(this.settings).model,
       max_tokens: this.settings.maxTokens,
@@ -2047,7 +2047,6 @@ class LoomSettingTab extends PluginSettingTab {
           ].provider = "openai-compat";
           this.plugin.settings.modelPresets[
             this.plugin.settings.modelPreset
-          // @ts-expect-error
           ].url = "https://api.hyperbolic.xyz";
           this.plugin.settings.modelPresets[
             this.plugin.settings.modelPreset
@@ -2177,6 +2176,7 @@ class LoomSettingTab extends PluginSettingTab {
             apiKey: this.plugin.settings.openaiApiKey || "",
             // @ts-expect-error
             organization: this.plugin.settings.openaiOrganization || "",
+            url: this.plugin.settings.openaiUrl || "",
           };
           break;
         }
@@ -2372,14 +2372,12 @@ class LoomSettingTab extends PluginSettingTab {
             .setValue(
               this.plugin.settings.modelPresets[
                 this.plugin.settings.modelPreset
-              // @ts-expect-error TODO
-              ].url
+              ].url || ""
             )
             .onChange(async (value) => {
               this.plugin.settings.modelPresets[
                 this.plugin.settings.modelPreset
-              // @ts-expect-error TODO
-              ].url = value;
+              ].url = value || "";
               await this.plugin.save();
             })
         );
@@ -2389,6 +2387,8 @@ class LoomSettingTab extends PluginSettingTab {
         new Setting(presetFields).setName("Quantization").addDropdown((dropdown) =>
           dropdown
             .addOptions({
+              "": "Default",
+              "unknown": "Unknown",
               bf16: "bf16",
               fp16: "fp16",
               fp8: "fp8",
