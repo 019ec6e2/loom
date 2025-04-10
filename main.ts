@@ -133,9 +133,17 @@ export default class LoomPlugin extends Plugin {
       this.openai = new OpenAIApi(
         new Configuration({
           basePath: url,
+          baseOptions: {
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Headers": "*",
+              "Access-Control-Allow-Methods": "*",
+              "Access-Control-Allow-Credentials": "true",
+            },
+          },
           apiKey: preset.apiKey,
           // @ts-expect-error TODO
-          organization: preset.organization,
+          organization: preset.organization + " (Loom)",
         })
       );
     } else if (preset.provider == "cohere") cohere.init(preset.apiKey);
@@ -1689,7 +1697,7 @@ export default class LoomPlugin extends Plugin {
     prompt = this.trimOpenAIPrompt(prompt);
     const body = {
       model: getPreset(this.settings).model,
-      messages: [{ role: "assistant" as const, content: prompt }],
+      messages: [{ role: "system" as const, content: this.settings.systemPrompt }, {"role": "user" as const, content: this.settings.userMessage}, { role: "assistant" as const, content: prompt }],
       max_tokens: this.settings.maxTokens,
       n: this.settings.n,
       temperature: this.settings.temperature,
@@ -2356,6 +2364,20 @@ class LoomSettingTab extends PluginSettingTab {
                 this.plugin.settings.modelPreset
               // @ts-expect-error TODO
               ].organization = value;
+              await this.plugin.save();
+            })
+        );
+        new Setting(presetFields).setName("URL").addText((text) =>
+          text
+            .setValue(
+              this.plugin.settings.modelPresets[
+                this.plugin.settings.modelPreset
+              ].url || ""
+            )
+            .onChange(async (value) => {
+              this.plugin.settings.modelPresets[
+                this.plugin.settings.modelPreset
+              ].url = value || "";
               await this.plugin.save();
             })
         );
