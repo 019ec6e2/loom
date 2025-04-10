@@ -702,7 +702,7 @@ export class LoomSiblingsView extends ItemView {
 
     const state = this.getNoteState();
 
-    if (state === null) {
+    if (!state) {
       container.createDiv({
         cls: "pane-empty",
         text: "No note selected.",
