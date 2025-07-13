@@ -30,9 +30,14 @@ type SharedPresetSettings = {
   url?: string;
 };
 
+export type CompletionRequestMode = "batch" | "independent";
+
 export type ModelPreset<P extends Provider> = SharedPresetSettings &
-  (P extends keyof ProviderProps ? ProviderProps[P] : {}) & { provider: P } & {
+  (P extends keyof ProviderProps ? ProviderProps[P] : Record<string, never>) & {
+    provider: P;
+  } & {
     includeQuantization?: boolean;
+    completionRequestMode?: CompletionRequestMode;
   };
 
 export interface LoomSettings {

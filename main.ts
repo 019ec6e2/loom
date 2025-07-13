@@ -1598,11 +1598,15 @@ export default class LoomPlugin extends Plugin {
     prompt = this.trimOpenAIPrompt(prompt);
 
     const preset = getPreset(this.settings);
+    const mode = preset.completionRequestMode || "batch";
+    if (this.settings.logApiCalls) {
+      console.log(`OpenRouter completion mode: ${mode}`);
+    }
+
     let body: any = {
       prompt,
       model: preset.model,
       max_tokens: this.settings.maxTokens,
-      n: this.settings.n,
       temperature: this.settings.temperature,
       top_p: this.settings.topP,
       best_of: this.settings.bestOf,
@@ -1614,52 +1618,87 @@ export default class LoomPlugin extends Plugin {
     // Only include quantization if enabled
     if (preset.includeQuantization !== false) {
       body.provider = {
-        // @ts-expect-error
         quantizations: [preset.quantization],
       };
     }
 
-    if (this.settings.logApiCalls) {
-      console.log("OpenRouter request:", body);
-    }
-
-    const requests = Array(this.settings.n)
-      .fill(null)
-      .map(() =>
-        requestUrl({
-          url: "https://openrouter.ai/api/v1/completions",
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${getPreset(this.settings).apiKey}`,
-            "HTTP-Referer": "https://github.com/cosmicoptima/loom",
-            "X-Title": "Loomsidian",
-            "Content-Type": "application/json",
-          },
-          throw: false,
-          body: JSON.stringify(body),
-        }),
-      );
-
-    const responses = await Promise.all(requests);
-
-    if (this.settings.logApiCalls) {
-      console.log("OpenRouter responses:", responses);
-    }
-
-    const result: CompletionResult = responses.every(
-      (response) => !response.json.hasOwnProperty("error"),
-    )
-      ? {
+    let result: CompletionResult;
+    if (mode === "batch") {
+      body.n = this.settings.n;
+      if (this.settings.logApiCalls) {
+        console.log("OpenRouter batch request:", body);
+      }
+      const response = await requestUrl({
+        url: "https://openrouter.ai/api/v1/completions",
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getPreset(this.settings).apiKey}`,
+          "HTTP-Referer": "https://github.com/cosmicoptima/loom",
+          "X-Title": "Loomsidian",
+          "Content-Type": "application/json",
+        },
+        throw: false,
+        body: JSON.stringify(body),
+      });
+      if (this.settings.logApiCalls) {
+        console.log("OpenRouter batch response:", response);
+      }
+      if (!response.json.hasOwnProperty("error")) {
+        result = {
+          ok: true,
+          completions: response.json.choices.map((choice: any) => choice.text),
+        };
+      } else {
+        result = {
+          ok: false,
+          status: response.json.error.code,
+          message: response.json.error.message,
+        };
+      }
+    } else {
+      // independent mode
+      const requests = Array(this.settings.n)
+        .fill(null)
+        .map(() => {
+          const singleBody = { ...body, n: 1 };
+          return requestUrl({
+            url: "https://openrouter.ai/api/v1/completions",
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${getPreset(this.settings).apiKey}`,
+              "HTTP-Referer": "https://github.com/cosmicoptima/loom",
+              "X-Title": "Loomsidian",
+              "Content-Type": "application/json",
+            },
+            throw: false,
+            body: JSON.stringify(singleBody),
+          });
+        });
+      const responses = await Promise.all(requests);
+      if (this.settings.logApiCalls) {
+        console.log("OpenRouter independent responses:", responses);
+      }
+      if (
+        responses.every((response) => !response.json.hasOwnProperty("error"))
+      ) {
+        result = {
           ok: true,
           completions: responses.map(
             (response) => response.json.choices[0].text,
           ),
-        }
-      : {
-          ok: false,
-          status: responses[0].json.error.code,
-          message: responses[0].json.error.message,
         };
+      } else {
+        // Find the first error
+        const firstError = responses.find((response) =>
+          response.json.hasOwnProperty("error"),
+        );
+        result = {
+          ok: false,
+          status: firstError?.json?.error?.code ?? -1,
+          message: firstError?.json?.error?.message ?? "Unknown error",
+        };
+      }
+    }
     return result;
   }
 
@@ -2008,6 +2047,7 @@ class LoomSettingTab extends PluginSettingTab {
     };
 
     const createPreset = (preset: ModelPreset<Provider>) => {
+      if (!preset.completionRequestMode) preset.completionRequestMode = "batch";
       this.plugin.settings.modelPresets.push(preset);
       this.plugin.save();
       selectPreset(this.plugin.settings.modelPresets.length - 1);
@@ -2028,8 +2068,9 @@ class LoomSettingTab extends PluginSettingTab {
         contextLength: 16384,
         apiKey: "",
         organization: "",
+        completionRequestMode: "batch",
       };
-      createPreset(newPreset);
+      createPreset(newPreset as unknown as ModelPreset<Provider>);
     });
 
     const fillInModelDropdown = newPresetButtons.createEl("select", {
@@ -2087,10 +2128,11 @@ class LoomSettingTab extends PluginSettingTab {
           this.plugin.settings.modelPresets[
             this.plugin.settings.modelPreset
           ].provider = "openrouter";
-          this.plugin.settings.modelPresets[
-            this.plugin.settings.modelPreset
-            // @ts-expect-error
-          ].quantization = "bf16";
+          (
+            this.plugin.settings.modelPresets[
+              this.plugin.settings.modelPreset
+            ] as any
+          ).quantization = "bf16";
           this.plugin.settings.modelPresets[
             this.plugin.settings.modelPreset
           ].model = "meta-llama/llama-3.1-405b";
@@ -2370,22 +2412,22 @@ class LoomSettingTab extends PluginSettingTab {
             .provider,
         )
       ) {
-        new Setting(presetFields).setName("Organization").addText((text) =>
+        new Setting(presetFields).setName("Organization").addText((text) => {
+          const preset =
+            this.plugin.settings.modelPresets[this.plugin.settings.modelPreset];
           text
-            .setValue(
-              this.plugin.settings.modelPresets[
-                this.plugin.settings.modelPreset
-                // @ts-expect-error TODO
-              ].organization,
-            )
+            .setValue("organization" in preset ? preset.organization : "")
             .onChange(async (value) => {
-              this.plugin.settings.modelPresets[
-                this.plugin.settings.modelPreset
-                // @ts-expect-error TODO
-              ].organization = value;
-              await this.plugin.save();
-            }),
-        );
+              const preset =
+                this.plugin.settings.modelPresets[
+                  this.plugin.settings.modelPreset
+                ];
+              if ("organization" in preset) {
+                (preset as any).organization = value;
+                await this.plugin.save();
+              }
+            });
+        });
         new Setting(presetFields).setName("URL").addText((text) =>
           text
             .setValue(
@@ -2442,16 +2484,18 @@ class LoomSettingTab extends PluginSettingTab {
                 int4: "int4",
               })
               .setValue(
-                this.plugin.settings.modelPresets[
-                  this.plugin.settings.modelPreset
-                  // @ts-expect-error TODO
-                ].quantization,
+                (
+                  this.plugin.settings.modelPresets[
+                    this.plugin.settings.modelPreset
+                  ] as any
+                ).quantization,
               )
               .onChange(async (value) => {
-                this.plugin.settings.modelPresets[
-                  this.plugin.settings.modelPreset
-                  // @ts-expect-error TODO
-                ].quantization = value;
+                (
+                  this.plugin.settings.modelPresets[
+                    this.plugin.settings.modelPreset
+                  ] as any
+                ).quantization = value;
                 await this.plugin.save();
               }),
           );
@@ -2473,6 +2517,29 @@ class LoomSettingTab extends PluginSettingTab {
               }),
           );
       }
+
+      // Add dropdown for completionRequestMode
+      new Setting(presetFields)
+        .setName("Completion request mode")
+        .setDesc(
+          "Choose whether to request multiple completions in a single batch or as independent requests.",
+        )
+        .addDropdown((dropdown) => {
+          dropdown.addOptions({
+            batch: "Batch (single request)",
+            independent: "Independent (multiple requests)",
+          });
+          dropdown.setValue(
+            this.plugin.settings.modelPresets[this.plugin.settings.modelPreset]
+              .completionRequestMode || "batch",
+          );
+          dropdown.onChange(async (value) => {
+            this.plugin.settings.modelPresets[
+              this.plugin.settings.modelPreset
+            ].completionRequestMode = value as "batch" | "independent";
+            await this.plugin.save();
+          });
+        });
     };
 
     const updatePresetList = () => {
