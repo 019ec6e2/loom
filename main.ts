@@ -135,16 +135,15 @@ export default class LoomPlugin extends Plugin {
           basePath: url,
           baseOptions: {
             headers: {
-              "Access-Control-Allow-Origin": "*",
-              "Access-Control-Allow-Headers": "*",
-              "Access-Control-Allow-Methods": "*",
-              "Access-Control-Allow-Credentials": "true",
+              //"Access-Control-Allow-Origin": "*",
+              //"Access-Control-Allow-Headers": "*",
+              //"Access-Control-Allow-Methods": "*",
+              //"Access-Control-Allow-Credentials": "true",
             },
           },
           apiKey: preset.apiKey,
-          // @ts-expect-error TODO
-          organization: preset.organization + " (Loom)",
-        })
+          //organization: preset.organization + " (Loom)",
+        }),
       );
     } else if (preset.provider == "cohere") cohere.init(preset.apiKey);
     else if (preset.provider == "azure") {
@@ -158,7 +157,7 @@ export default class LoomPlugin extends Plugin {
             apiKey: preset.apiKey,
             endpoint: url,
           },
-        })
+        }),
       );
     } else if (preset.provider == "anthropic") {
       //(property) ClientOptions.fetch?: Fetch | undefined
@@ -190,7 +189,7 @@ export default class LoomPlugin extends Plugin {
   newNode(
     text: string,
     parentId: string | null,
-    unread: boolean = false
+    unread: boolean = false,
   ): [string, Node] {
     const id = uuidv4();
     const node: Node = {
@@ -284,7 +283,7 @@ export default class LoomPlugin extends Plugin {
 
     // get the in-range node's children, which will be moved later
     const children = Object.values(state.nodes).filter(
-      (node) => node.parentId === parentNode
+      (node) => node.parentId === parentNode,
     );
 
     // then, create a new node with the text after the cursor
@@ -312,7 +311,7 @@ export default class LoomPlugin extends Plugin {
 
     const completeCallback = (
       checking: boolean,
-      callback: (file: TFile) => Promise<void>
+      callback: (file: TFile) => Promise<void>,
     ) => {
       const file = this.app.workspace.getActiveFile();
       if (!file || file.extension !== "md") return;
@@ -350,7 +349,7 @@ export default class LoomPlugin extends Plugin {
 
     const withState = (
       checking: boolean,
-      callback: (state: NoteState) => void
+      callback: (state: NoteState) => void,
     ) => {
       const file = this.app.workspace.getActiveFile();
       if (!file || file.extension !== "md") return false;
@@ -365,7 +364,7 @@ export default class LoomPlugin extends Plugin {
     const withStateChecked = (
       checking: boolean,
       checkCallback: (state: NoteState) => boolean,
-      callback: (state: NoteState) => void
+      callback: (state: NoteState) => void,
     ) => {
       const file = this.app.workspace.getActiveFile();
       if (!file || file.extension !== "md") return false;
@@ -435,7 +434,7 @@ export default class LoomPlugin extends Plugin {
         withState(checking, (state) => {
           this.app.workspace.trigger(
             "loom:break-at-point-create-child",
-            state.current
+            state.current,
           );
         }),
       hotkeys: [{ modifiers: ["Alt"], key: "c" }],
@@ -448,7 +447,7 @@ export default class LoomPlugin extends Plugin {
         return false;
       }
       const nSiblings = Object.values(state.nodes).filter(
-        (n) => n.parentId === parentId
+        (n) => n.parentId === parentId,
       ).length;
       if (nSiblings > 1) {
         if (!checking)
@@ -467,7 +466,7 @@ export default class LoomPlugin extends Plugin {
           (state) => canMerge(state, state.current, checking),
           (state) => {
             this.app.workspace.trigger("loom:merge-with-parent", state.current);
-          }
+          },
         ),
       hotkeys: [{ modifiers: ["Alt"], key: "m" }],
     });
@@ -505,7 +504,7 @@ export default class LoomPlugin extends Plugin {
     const switchToParent = (state: NoteState) =>
       this.app.workspace.trigger(
         "loom:switch-to",
-        state.nodes[state.current].parentId
+        state.nodes[state.current].parentId,
       );
 
     this.addCommand({
@@ -515,7 +514,7 @@ export default class LoomPlugin extends Plugin {
         withStateChecked(
           checking,
           (state) => state.nodes[state.current].parentId !== null,
-          switchToParent
+          switchToParent,
         ),
       hotkeys: [{ modifiers: ["Alt"], key: "ArrowLeft" }],
     });
@@ -525,7 +524,7 @@ export default class LoomPlugin extends Plugin {
         .filter(([, node]) => node.parentId === state.current)
         .sort(
           ([, node1], [, node2]) =>
-            (node2.lastVisited || 0) - (node1.lastVisited || 0)
+            (node2.lastVisited || 0) - (node1.lastVisited || 0),
         );
 
       if (children.length > 0)
@@ -559,7 +558,7 @@ export default class LoomPlugin extends Plugin {
           (state) => canDelete(state, state.current, checking),
           (state) => {
             this.app.workspace.trigger("loom:delete", [state.current]);
-          }
+          },
         ),
       hotkeys: [{ modifiers: ["Alt"], key: "Backspace" }],
     });
@@ -633,11 +632,11 @@ export default class LoomPlugin extends Plugin {
 
     this.registerView(
       "loom",
-      (leaf) => new LoomView(leaf, getState, getSettings)
+      (leaf) => new LoomView(leaf, getState, getSettings),
     );
     this.registerView(
       "loom-siblings",
-      (leaf) => new LoomSiblingsView(leaf, getState)
+      (leaf) => new LoomSiblingsView(leaf, getState),
     );
 
     openLoomPane(true);
@@ -645,7 +644,7 @@ export default class LoomPlugin extends Plugin {
 
     const loomEditorPlugin = ViewPlugin.fromClass(
       LoomEditorPlugin,
-      loomEditorPluginSpec
+      loomEditorPluginSpec,
     );
     this.registerEditorExtension([loomEditorPlugin]);
 
@@ -692,13 +691,13 @@ export default class LoomPlugin extends Plugin {
           const text = editor.getValue();
           const ancestorTexts = ancestors.map(
             // @ts-ignore
-            (id) => this.state[view.file.path].nodes[id].text
+            (id) => this.state[view.file.path].nodes[id].text,
           );
 
           // `familyTexts`: `ancestorTexts` + the current node's text
           const familyTexts = ancestorTexts.concat(
             // @ts-ignore
-            this.state[view.file.path].nodes[current].text
+            this.state[view.file.path].nodes[current].text,
           );
 
           // for each ancestor, check if the editor's text starts with the ancestor's full text
@@ -734,7 +733,7 @@ export default class LoomPlugin extends Plugin {
           }
           // @ts-ignore
           this.state[view.file.path].nodes[current].text = text.slice(
-            ancestorTexts.join("").length
+            ancestorTexts.join("").length,
           );
 
           updateDecorations();
@@ -745,8 +744,8 @@ export default class LoomPlugin extends Plugin {
 
           // restore cursor position
           editor.setCursor(cursor);
-        }
-      )
+        },
+      ),
     );
 
     this.registerEvent(
@@ -762,7 +761,7 @@ export default class LoomPlugin extends Plugin {
           // uncollapse the node's ancestors
           const ancestors = this.family(file, id).slice(0, -1);
           ancestors.forEach(
-            (id) => (this.state[file.path].nodes[id].collapsed = false)
+            (id) => (this.state[file.path].nodes[id].collapsed = false),
           );
 
           // update the editor's text
@@ -799,8 +798,8 @@ export default class LoomPlugin extends Plugin {
           //       }
           // this.editor.setCursor(cursor);
           this.saveAndRender(); // Add explicit view refresh
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -809,23 +808,23 @@ export default class LoomPlugin extends Plugin {
         this.wftsar(
           (file) =>
             (this.state[file.path].nodes[id].collapsed =
-              !this.state[file.path].nodes[id].collapsed)
-        )
-      )
+              !this.state[file.path].nodes[id].collapsed),
+        ),
+      ),
     );
 
     this.registerEvent(
       // @ts-expect-error
       this.app.workspace.on("loom:hoist", (id: string) =>
-        this.wftsar((file) => this.state[file.path].hoisted.push(id))
-      )
+        this.wftsar((file) => this.state[file.path].hoisted.push(id)),
+      ),
     );
 
     this.registerEvent(
       // @ts-expect-error
       this.app.workspace.on("loom:unhoist", () =>
-        this.wftsar((file) => this.state[file.path].hoisted.pop())
-      )
+        this.wftsar((file) => this.state[file.path].hoisted.pop()),
+      ),
     );
 
     this.registerEvent(
@@ -834,9 +833,9 @@ export default class LoomPlugin extends Plugin {
         this.wftsar(
           (file) =>
             (this.state[file.path].nodes[id].bookmarked =
-              !this.state[file.path].nodes[id].bookmarked)
-        )
-      )
+              !this.state[file.path].nodes[id].bookmarked),
+        ),
+      ),
     );
 
     this.registerEvent(
@@ -846,8 +845,8 @@ export default class LoomPlugin extends Plugin {
           const [newId, newNode] = this.newNode("", id);
           this.state[file.path].nodes[newId] = newNode;
           this.app.workspace.trigger("loom:switch-to", newId);
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -856,12 +855,12 @@ export default class LoomPlugin extends Plugin {
         this.withFile((file) => {
           const [newId, newNode] = this.newNode(
             "",
-            this.state[file.path].nodes[id].parentId
+            this.state[file.path].nodes[id].parentId,
           );
           this.state[file.path].nodes[newId] = newNode;
           this.app.workspace.trigger("loom:switch-to", newId);
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -872,8 +871,8 @@ export default class LoomPlugin extends Plugin {
           const [newId, newNode] = this.newNode(node.text, node.parentId);
           this.state[file.path].nodes[newId] = newNode;
           this.app.workspace.trigger("loom:switch-to", newId);
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -882,8 +881,8 @@ export default class LoomPlugin extends Plugin {
         this.withFile((file) => {
           const [, childId] = this.breakAtPoint(file);
           if (childId) this.app.workspace.trigger("loom:switch-to", childId);
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -896,8 +895,8 @@ export default class LoomPlugin extends Plugin {
             this.state[file.path].nodes[newId] = newNode;
             this.app.workspace.trigger("loom:switch-to", newId);
           }
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -915,7 +914,7 @@ export default class LoomPlugin extends Plugin {
 
           // move the children to the merged node
           const children = Object.entries(state.nodes).filter(
-            ([, node]) => node.parentId === id
+            ([, node]) => node.parentId === id,
           );
           for (const [childId] of children)
             this.state[file.path].nodes[childId].parentId = parentId;
@@ -923,8 +922,8 @@ export default class LoomPlugin extends Plugin {
           // switch to the merged node and delete the child node
           this.app.workspace.trigger("loom:switch-to", parentId);
           this.app.workspace.trigger("loom:delete", [id]);
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -938,7 +937,7 @@ export default class LoomPlugin extends Plugin {
 
           // remove the nodes from the hoist stack
           this.state[file.path].hoisted = state.hoisted.filter(
-            (id) => !ids.includes(id)
+            (id) => !ids.includes(id),
           );
 
           // add the nodes and their descendants to a list of nodes to delete
@@ -994,8 +993,8 @@ export default class LoomPlugin extends Plugin {
 
           // delete the nodes in the list
           for (const id of deleted) delete this.state[file.path].nodes[id];
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -1006,8 +1005,8 @@ export default class LoomPlugin extends Plugin {
             .filter(([, node]) => node.parentId === id)
             .map(([id]) => id);
           this.app.workspace.trigger("loom:delete", children);
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -1019,8 +1018,8 @@ export default class LoomPlugin extends Plugin {
             .filter(([id_, node]) => node.parentId === parentId && id_ !== id)
             .map(([id]) => id);
           this.app.workspace.trigger("loom:delete", siblings);
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -1042,8 +1041,8 @@ export default class LoomPlugin extends Plugin {
 
             editor.focus();
           }
-        }
-      )
+        },
+      ),
     );
 
     this.registerEvent(
@@ -1053,8 +1052,8 @@ export default class LoomPlugin extends Plugin {
         (setting: string, value: boolean) => {
           this.settings.visibility[setting] = value;
           this.saveAndRender();
-        }
-      )
+        },
+      ),
     );
 
     this.registerEvent(
@@ -1074,7 +1073,7 @@ export default class LoomPlugin extends Plugin {
 
           const matches = Object.entries(state.nodes)
             .filter(([, node]) =>
-              node.text.toLowerCase().includes(term.toLowerCase())
+              node.text.toLowerCase().includes(term.toLowerCase()),
             )
             .map(([id]) => id);
 
@@ -1097,8 +1096,8 @@ export default class LoomPlugin extends Plugin {
           });
 
           this.save();
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -1111,8 +1110,8 @@ export default class LoomPlugin extends Plugin {
           this.app.workspace.trigger("loom:switch-to", data.current);
 
           new Notice("Imported from " + fullPath);
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -1124,8 +1123,8 @@ export default class LoomPlugin extends Plugin {
           fs.writeFileSync(fullPath, json);
 
           new Notice("Exported to " + fullPath);
-        })
-      )
+        }),
+      ),
     );
 
     this.registerEvent(
@@ -1147,7 +1146,7 @@ export default class LoomPlugin extends Plugin {
                 .map(([, node]) => frontmatter(index) + node.text);
             });
             const text = `${passageTexts.join(
-              separator
+              separator,
             )}${separator}${frontmatter(passages.length)}`;
 
             const state = this.state[file.path];
@@ -1164,8 +1163,8 @@ export default class LoomPlugin extends Plugin {
             }
 
             this.app.workspace.trigger("loom:switch-to", id);
-          })
-      )
+          }),
+      ),
     );
 
     const onFileOpen = (file: TFile) => {
@@ -1207,7 +1206,7 @@ export default class LoomPlugin extends Plugin {
     };
 
     this.registerEvent(
-      this.app.workspace.on("file-open", (file) => file && onFileOpen(file))
+      this.app.workspace.on("file-open", (file) => file && onFileOpen(file)),
     );
 
     this.registerEvent(
@@ -1215,13 +1214,13 @@ export default class LoomPlugin extends Plugin {
         if (!leaf) return;
         const view = leaf.view;
         if (view instanceof MarkdownView) this.editor = view.editor;
-      })
+      }),
     );
 
     this.registerEvent(
       this.app.workspace.on("resize", () => {
         this.refreshViews();
-      })
+      }),
     );
 
     this.registerEvent(
@@ -1229,14 +1228,14 @@ export default class LoomPlugin extends Plugin {
         this.state[file.path] = this.state[oldPath];
         delete this.state[oldPath];
         this.save();
-      })
+      }),
     );
 
     this.registerEvent(
       this.app.vault.on("delete", (file) => {
         delete this.state[file.path];
         this.save();
-      })
+      }),
     );
 
     this.withFile((file) =>
@@ -1248,7 +1247,7 @@ export default class LoomPlugin extends Plugin {
         )
           this.editor = leaf.view.editor;
         onFileOpen(file);
-      })
+      }),
     );
   }
 
@@ -1310,9 +1309,10 @@ export default class LoomPlugin extends Plugin {
     };
     let result;
     try {
-      result = await completionMethods[getPreset(this.settings).provider].bind(
-        this
-      )(prompt);
+      result =
+        await completionMethods[getPreset(this.settings).provider].bind(this)(
+          prompt,
+        );
     } catch (e) {
       new Notice(`Error: ${e}`);
       this.state[file.path].generating = null;
@@ -1343,7 +1343,7 @@ export default class LoomPlugin extends Plugin {
       // otherwise, deduplicate adjacent spaces between the prompt and completion
       if (
         ["azure-chat", "openai-chat"].includes(
-          getPreset(this.settings).provider
+          getPreset(this.settings).provider,
         )
       ) {
         if (!trailingSpace) completion = " " + completion;
@@ -1419,7 +1419,7 @@ export default class LoomPlugin extends Plugin {
         ? {
             ok: true,
             completions: response.body.generations.map(
-              (generation) => generation.text
+              (generation) => generation.text,
             ),
           }
         : {
@@ -1519,8 +1519,8 @@ export default class LoomPlugin extends Plugin {
       tokenizer
         .encode(prompt, { disallowedSpecial: new Set() })
         .slice(
-          -(getPreset(this.settings).contextLength - this.settings.maxTokens)
-        )
+          -(getPreset(this.settings).contextLength - this.settings.maxTokens),
+        ),
     );
   }
 
@@ -1534,7 +1534,7 @@ export default class LoomPlugin extends Plugin {
     if (!url.endsWith("/")) url += "/";
     url = url.replace(/v1\//, "");
     url += "v1/completions";
-    
+
     const body: any = {
       prompt,
       model: getPreset(this.settings).model,
@@ -1554,7 +1554,7 @@ export default class LoomPlugin extends Plugin {
     if (this.settings.logApiCalls) {
       console.log("OpenAI-compatible API request:", {
         url,
-        body
+        body,
       });
     }
 
@@ -1578,13 +1578,13 @@ export default class LoomPlugin extends Plugin {
         ? {
             ok: true,
             completions: response.json.choices.map(
-              (choice: any) => choice.text
+              (choice: any) => choice.text,
             ),
           }
-        : { 
-            ok: false, 
-            status: response.status, 
-            message: response.json?.error?.message || "Unknown error" 
+        : {
+            ok: false,
+            status: response.status,
+            message: response.json?.error?.message || "Unknown error",
           };
 
     if (!result.ok && this.settings.logApiCalls) {
@@ -1597,42 +1597,48 @@ export default class LoomPlugin extends Plugin {
   async completeOpenRouter(prompt: string) {
     prompt = this.trimOpenAIPrompt(prompt);
 
+    const preset = getPreset(this.settings);
     let body: any = {
       prompt,
-      model: getPreset(this.settings).model,
+      model: preset.model,
       max_tokens: this.settings.maxTokens,
       n: this.settings.n,
       temperature: this.settings.temperature,
       top_p: this.settings.topP,
       best_of: this.settings.bestOf,
-      provider: {
-        // @ts-expect-error
-        quantizations: [getPreset(this.settings).quantization]
-      }
     };
     if (this.settings.frequencyPenalty !== 0)
       body.frequency_penalty = this.settings.frequencyPenalty;
     if (this.settings.presencePenalty !== 0)
       body.presence_penalty = this.settings.presencePenalty;
+    // Only include quantization if enabled
+    if (preset.includeQuantization !== false) {
+      body.provider = {
+        // @ts-expect-error
+        quantizations: [preset.quantization],
+      };
+    }
 
     if (this.settings.logApiCalls) {
       console.log("OpenRouter request:", body);
     }
 
-    const requests = Array(this.settings.n).fill(null).map(() =>
-      requestUrl({
-        url: "https://openrouter.ai/api/v1/completions",
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${getPreset(this.settings).apiKey}`,
-          "HTTP-Referer": "https://github.com/cosmicoptima/loom",
-          "X-Title": "Loomsidian",
-          "Content-Type": "application/json",
-        },
-        throw: false,
-        body: JSON.stringify(body),
-      })
-    );
+    const requests = Array(this.settings.n)
+      .fill(null)
+      .map(() =>
+        requestUrl({
+          url: "https://openrouter.ai/api/v1/completions",
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${getPreset(this.settings).apiKey}`,
+            "HTTP-Referer": "https://github.com/cosmicoptima/loom",
+            "X-Title": "Loomsidian",
+            "Content-Type": "application/json",
+          },
+          throw: false,
+          body: JSON.stringify(body),
+        }),
+      );
 
     const responses = await Promise.all(requests);
 
@@ -1640,10 +1646,14 @@ export default class LoomPlugin extends Plugin {
       console.log("OpenRouter responses:", responses);
     }
 
-    const result: CompletionResult = responses.every(response => !response.json.hasOwnProperty('error'))
+    const result: CompletionResult = responses.every(
+      (response) => !response.json.hasOwnProperty("error"),
+    )
       ? {
           ok: true,
-          completions: responses.map(response => response.json.choices[0].text),
+          completions: responses.map(
+            (response) => response.json.choices[0].text,
+          ),
         }
       : {
           ok: false,
@@ -1697,7 +1707,16 @@ export default class LoomPlugin extends Plugin {
     prompt = this.trimOpenAIPrompt(prompt);
     const body = {
       model: getPreset(this.settings).model,
-      messages: [{ role: "system" as const, content: this.settings.systemPrompt }, {"role": "user" as const, content: this.settings.userMessage}, { role: "assistant" as const, content: prompt }],
+      messages: [
+        { role: "system" as const, content: this.settings.systemPrompt },
+        { role: "user" as const, content: this.settings.userMessage },
+        { role: "assistant" as const, content: prompt },
+        {
+          role: "user" as const,
+          content:
+            "Your message was interrupted, continue where you stopped without acknowledging the interruption.",
+        },
+      ],
       max_tokens: this.settings.maxTokens,
       n: this.settings.n,
       temperature: this.settings.temperature,
@@ -1719,7 +1738,7 @@ export default class LoomPlugin extends Plugin {
       result = {
         ok: true,
         completions: response.data.choices.map(
-          (choice) => choice.message?.content || ""
+          (choice) => choice.message?.content || "",
         ),
       };
     } catch (e) {
@@ -1801,7 +1820,7 @@ export default class LoomPlugin extends Plugin {
       result = {
         ok: true,
         completions: response.data.choices.map(
-          (choice) => choice.message?.content || ""
+          (choice) => choice.message?.content || "",
         ),
       };
     } catch (e) {
@@ -1821,7 +1840,7 @@ export default class LoomPlugin extends Plugin {
     const completions = await Promise.all(
       [...Array(this.settings.n).keys()].map(async () => {
         return await this.getAnthropicResponse(prompt);
-      })
+      }),
     );
 
     const result: CompletionResult = { ok: true, completions };
@@ -1843,7 +1862,7 @@ export default class LoomPlugin extends Plugin {
         ],
       },
       null,
-      2
+      2,
     );
     if (this.settings.logApiCalls) {
       console.log(`request body: ${body}`);
@@ -1904,7 +1923,7 @@ export default class LoomPlugin extends Plugin {
       }
     });
 
-    // Refresh Loom siblings views  
+    // Refresh Loom siblings views
     this.app.workspace.getLeavesOfType("loom-siblings").forEach((leaf) => {
       if (leaf.view instanceof LoomSiblingsView) {
         leaf.view.render();
@@ -2070,7 +2089,7 @@ class LoomSettingTab extends PluginSettingTab {
           ].provider = "openrouter";
           this.plugin.settings.modelPresets[
             this.plugin.settings.modelPreset
-          // @ts-expect-error
+            // @ts-expect-error
           ].quantization = "bf16";
           this.plugin.settings.modelPresets[
             this.plugin.settings.modelPreset
@@ -2265,7 +2284,7 @@ class LoomSettingTab extends PluginSettingTab {
         text
           .setValue(
             this.plugin.settings.modelPresets[this.plugin.settings.modelPreset]
-              .name
+              .name,
           )
           .onChange((value) => {
             this.plugin.settings.modelPresets[
@@ -2273,13 +2292,13 @@ class LoomSettingTab extends PluginSettingTab {
             ].name = value;
             this.plugin.saveAndRender();
             updatePresetList();
-          })
+          }),
       );
 
       new Setting(presetFields).setName("Provider").addDropdown((dropdown) => {
         const options: Record<string, string> = {
           "openai-compat": "OpenAI-compatible API",
-          "openrouter": "OpenRouter",
+          openrouter: "OpenRouter",
           anthropic: "Anthropic",
           openai: "OpenAI",
           "openai-chat": "OpenAI (Chat)",
@@ -2291,7 +2310,7 @@ class LoomSettingTab extends PluginSettingTab {
         dropdown.addOptions(options);
         dropdown.setValue(
           this.plugin.settings.modelPresets[this.plugin.settings.modelPreset]
-            .provider
+            .provider,
         );
         dropdown.onChange(async (value) => {
           this.plugin.settings.modelPresets[
@@ -2306,14 +2325,14 @@ class LoomSettingTab extends PluginSettingTab {
         text
           .setValue(
             this.plugin.settings.modelPresets[this.plugin.settings.modelPreset]
-              .model
+              .model,
           )
           .onChange(async (value) => {
             this.plugin.settings.modelPresets[
               this.plugin.settings.modelPreset
             ].model = value;
             await this.plugin.save();
-          })
+          }),
       );
 
       new Setting(presetFields).setName("Context length").addText((text) =>
@@ -2321,34 +2340,34 @@ class LoomSettingTab extends PluginSettingTab {
           .setValue(
             this.plugin.settings.modelPresets[
               this.plugin.settings.modelPreset
-            ].contextLength.toString()
+            ].contextLength.toString(),
           )
           .onChange(async (value) => {
             this.plugin.settings.modelPresets[
               this.plugin.settings.modelPreset
             ].contextLength = parseInt(value);
             await this.plugin.save();
-          })
+          }),
       );
 
       new Setting(presetFields).setName("API key").addText((text) =>
         text
           .setValue(
             this.plugin.settings.modelPresets[this.plugin.settings.modelPreset]
-              .apiKey
+              .apiKey,
           )
           .onChange(async (value) => {
             this.plugin.settings.modelPresets[
               this.plugin.settings.modelPreset
             ].apiKey = value;
             await this.plugin.save();
-          })
+          }),
       );
 
       if (
         ["openai", "openai-chat"].includes(
           this.plugin.settings.modelPresets[this.plugin.settings.modelPreset]
-            .provider
+            .provider,
         )
       ) {
         new Setting(presetFields).setName("Organization").addText((text) =>
@@ -2356,37 +2375,37 @@ class LoomSettingTab extends PluginSettingTab {
             .setValue(
               this.plugin.settings.modelPresets[
                 this.plugin.settings.modelPreset
-              // @ts-expect-error TODO
-              ].organization
+                // @ts-expect-error TODO
+              ].organization,
             )
             .onChange(async (value) => {
               this.plugin.settings.modelPresets[
                 this.plugin.settings.modelPreset
-              // @ts-expect-error TODO
+                // @ts-expect-error TODO
               ].organization = value;
               await this.plugin.save();
-            })
+            }),
         );
         new Setting(presetFields).setName("URL").addText((text) =>
           text
             .setValue(
               this.plugin.settings.modelPresets[
                 this.plugin.settings.modelPreset
-              ].url || ""
+              ].url || "",
             )
             .onChange(async (value) => {
               this.plugin.settings.modelPresets[
                 this.plugin.settings.modelPreset
               ].url = value || "";
               await this.plugin.save();
-            })
+            }),
         );
       }
 
       if (
         ["openai-compat", "azure", "azure-chat"].includes(
           this.plugin.settings.modelPresets[this.plugin.settings.modelPreset]
-            .provider
+            .provider,
         )
       ) {
         new Setting(presetFields).setName("URL").addText((text) =>
@@ -2394,43 +2413,65 @@ class LoomSettingTab extends PluginSettingTab {
             .setValue(
               this.plugin.settings.modelPresets[
                 this.plugin.settings.modelPreset
-              ].url || ""
+              ].url || "",
             )
             .onChange(async (value) => {
               this.plugin.settings.modelPresets[
                 this.plugin.settings.modelPreset
               ].url = value || "";
               await this.plugin.save();
-            })
+            }),
         );
       }
 
-      if (this.plugin.settings.modelPresets[this.plugin.settings.modelPreset].provider === "openrouter") {
-        new Setting(presetFields).setName("Quantization").addDropdown((dropdown) =>
-          dropdown
-            .addOptions({
-              "": "Default",
-              "unknown": "Unknown",
-              bf16: "bf16",
-              fp16: "fp16",
-              fp8: "fp8",
-              int8: "int8",
-              int4: "int4"
-            })
-            .setValue(
-              this.plugin.settings.modelPresets[
-                this.plugin.settings.modelPreset
-              // @ts-expect-error TODO
-              ].quantization
-            )
-            .onChange(async (value) => {
-              this.plugin.settings.modelPresets[
-                this.plugin.settings.modelPreset
-              // @ts-expect-error TODO
-              ].quantization = value;
-              await this.plugin.save();
-            })
-        );
+      if (
+        this.plugin.settings.modelPresets[this.plugin.settings.modelPreset]
+          .provider === "openrouter"
+      ) {
+        new Setting(presetFields)
+          .setName("Quantization")
+          .addDropdown((dropdown) =>
+            dropdown
+              .addOptions({
+                "": "Default",
+                unknown: "Unknown",
+                bf16: "bf16",
+                fp16: "fp16",
+                fp8: "fp8",
+                int8: "int8",
+                int4: "int4",
+              })
+              .setValue(
+                this.plugin.settings.modelPresets[
+                  this.plugin.settings.modelPreset
+                  // @ts-expect-error TODO
+                ].quantization,
+              )
+              .onChange(async (value) => {
+                this.plugin.settings.modelPresets[
+                  this.plugin.settings.modelPreset
+                  // @ts-expect-error TODO
+                ].quantization = value;
+                await this.plugin.save();
+              }),
+          );
+        // Add checkbox for including quantization
+        new Setting(presetFields)
+          .setName("Include quantization in request")
+          .addToggle((toggle) =>
+            toggle
+              .setValue(
+                this.plugin.settings.modelPresets[
+                  this.plugin.settings.modelPreset
+                ].includeQuantization !== false, // default true
+              )
+              .onChange(async (value) => {
+                this.plugin.settings.modelPresets[
+                  this.plugin.settings.modelPreset
+                ].includeQuantization = value;
+                await this.plugin.save();
+              }),
+          );
       }
     };
 
@@ -2446,7 +2487,7 @@ class LoomSettingTab extends PluginSettingTab {
           }`,
         });
         presetContainer.addEventListener("click", () =>
-          selectPreset(parseInt(i))
+          selectPreset(parseInt(i)),
         );
 
         presetContainer.createSpan({
@@ -2483,7 +2524,7 @@ class LoomSettingTab extends PluginSettingTab {
       name: string,
       key: LoomSettingKey,
       toText: (value: any) => string,
-      fromText: (text: string) => any
+      fromText: (text: string) => any,
     ) => {
       new Setting(containerEl).setName(name).addText((text) =>
         text
@@ -2492,7 +2533,7 @@ class LoomSettingTab extends PluginSettingTab {
             // @ts-expect-error
             this.plugin.settings[key] = fromText(value);
             await this.plugin.save();
-          })
+          }),
       );
     };
 
@@ -2501,7 +2542,7 @@ class LoomSettingTab extends PluginSettingTab {
         name,
         key,
         (value) => value,
-        (text) => text
+        (text) => text,
       );
 
     new Setting(containerEl)
@@ -2513,7 +2554,7 @@ class LoomSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.passageFolder = value;
             await this.plugin.save();
-          })
+          }),
       );
 
     idSetting("Default passage separator", "defaultPassageSeparator");
@@ -2533,7 +2574,7 @@ class LoomSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.logApiCalls = value;
             await this.plugin.save();
-          })
+          }),
       );
   }
 }

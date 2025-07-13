@@ -13,12 +13,12 @@ export type Provider = (typeof PROVIDERS)[number];
 
 type ProviderProps = {
   openai: { organization: string };
-  "openai-chat": { organization: string, url?: string };
+  "openai-chat": { organization: string; url?: string };
   "openai-compat": { url: string };
   azure: { url: string };
   "azure-chat": { url: string };
   anthropic: { url: string };
-  openrouter: { quantization: string };
+  openrouter: { quantization: string; includeQuantization?: boolean };
 };
 
 type SharedPresetSettings = {
@@ -31,7 +31,9 @@ type SharedPresetSettings = {
 };
 
 export type ModelPreset<P extends Provider> = SharedPresetSettings &
-  (P extends keyof ProviderProps ? ProviderProps[P] : {}) & { provider: P };
+  (P extends keyof ProviderProps ? ProviderProps[P] : {}) & { provider: P } & {
+    includeQuantization?: boolean;
+  };
 
 export interface LoomSettings {
   passageFolder: string;
